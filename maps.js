@@ -1,3 +1,5 @@
+// import React, { useState, useCallback } from 'react';
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Sun, Navigation, MapPin } from 'lucide-react';
 
@@ -18,7 +20,7 @@ export default function ShadeRouteMap() {
   useEffect(() => {
     // Load Google Maps script
     const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyBp_7yJL_HcKqbpKAEALv4tWlj_cBPfFXk&libraries=places`;
     script.async = true;
     script.onload = initMap;
     document.head.appendChild(script);
@@ -41,36 +43,6 @@ export default function ShadeRouteMap() {
           }
         ]
       });
-
-      // Initialize autocomplete for origin
-      if (originInputRef.current) {
-        originAutocompleteRef.current = new window.google.maps.places.Autocomplete(
-          originInputRef.current,
-          { fields: ['formatted_address', 'geometry', 'name'] }
-        );
-        
-        originAutocompleteRef.current.addListener('place_changed', () => {
-          const place = originAutocompleteRef.current.getPlace();
-          if (place.formatted_address) {
-            setOrigin(place.formatted_address);
-          }
-        });
-      }
-
-      // Initialize autocomplete for destination
-      if (destInputRef.current) {
-        destAutocompleteRef.current = new window.google.maps.places.Autocomplete(
-          destInputRef.current,
-          { fields: ['formatted_address', 'geometry', 'name'] }
-        );
-        
-        destAutocompleteRef.current.addListener('place_changed', () => {
-          const place = destAutocompleteRef.current.getPlace();
-          if (place.formatted_address) {
-            setDestination(place.formatted_address);
-          }
-        });
-      }
     }
   };
 
@@ -177,7 +149,6 @@ export default function ShadeRouteMap() {
               Starting Point
             </label>
             <input
-              ref={originInputRef}
               type="text"
               placeholder="Enter origin address"
               value={origin}
@@ -192,7 +163,6 @@ export default function ShadeRouteMap() {
               Destination
             </label>
             <input
-              ref={destInputRef}
               type="text"
               placeholder="Enter destination address"
               value={destination}
@@ -266,3 +236,327 @@ export default function ShadeRouteMap() {
     </div>
   );
 }
+// import Map, { Marker, Source, Layer } from 'react-map-gl';
+// import maplibregl from 'maplibre-gl';
+// import 'maplibre-gl/dist/maplibre-gl.css';
+// import axios from 'axios';
+// import debounce from 'lodash.debounce';
+
+// const API_BASE = 'http://localhost:8000';
+
+// const glassStyle = {
+//   background: 'rgba(255,255,255,0.15)',
+//   boxShadow: '0 8px 32px 0 rgba(31,38,135,0.37)',
+//   backdropFilter: 'blur(8px)',
+//   WebkitBackdropFilter: 'blur(8px)',
+//   borderRadius: '16px',
+//   border: '1px solid rgba(255,255,255,0.18)',
+// };
+
+// function App() {
+//   const [initialized, setInitialized] = useState(false);
+//   const [loading, setLoading] = useState(false);
+
+//   // New state for address search
+//   const [originQuery, setOriginQuery] = useState('');
+//   const [originOptions, setOriginOptions] = useState([]);
+//   const [origin, setOrigin] = useState(null);
+
+//   const [destinationQuery, setDestinationQuery] = useState('');
+//   const [destinationOptions, setDestinationOptions] = useState([]);
+//   const [destination, setDestination] = useState(null);
+
+//   const [route, setRoute] = useState(null);
+//   const [routeStats, setRouteStats] = useState(null);
+//   const [shadePreference, setShadePreference] = useState(0.5);
+//   const [datetime, setDatetime] = useState('2024-08-16T12:00:00');
+
+//   const [country, setCountry] = useState('');
+//   const [province, setProvince] = useState('');
+
+//   const handleAddressSearch = useCallback(
+//     debounce(async (query, setOptions) => {
+//       if (!query) {
+//         setOptions([]);
+//         return;
+//       }
+//       let fullQuery = query;
+//       if (province) fullQuery += `, ${province}`;
+//       if (country) fullQuery += `, ${country}`;
+//       try {
+//         const res = await axios.get(
+//           `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullQuery)}`
+//         );
+//         setOptions(res.data);
+//       } catch (error) {
+//         setOptions([]);
+//         alert('Address search service is temporarily unavailable. Please try again later.');
+//       }
+//     }, 500),
+//     [country, province]
+//   );
+
+//   const initializeSystem = async () => {
+//     if (!country || !province) {
+//       alert('Please enter both country and province/state.');
+//       return;
+//     }
+//     setLoading(true);
+//     try {
+//       await axios.post(`${API_BASE}/initialize`, {
+//         place_name: `${province}, ${country}`,
+//         latitude: 43.65,
+//         longitude: -79.38,
+//         timezone: "America/Toronto"
+//       });
+//       setInitialized(true);
+//       alert('System initialized! Type and select your origin and destination.');
+//     } catch (error) {
+//       console.error('Initialization failed:', error);
+//       alert('Initialization failed. Check console for details.');
+//     }
+//     setLoading(false);
+//   };
+
+//   const calculateRoute = async () => {
+//     if (!origin || !destination) {
+//       alert('Please set both origin and destination.');
+//       return;
+//     }
+
+//     setLoading(true);
+//     try {
+//       const response = await axios.post(
+//         `${API_BASE}/route`,
+//         {
+//           origin: origin,
+//           destination: destination,
+//           datetime: datetime,
+//           shade_preference: shadePreference
+//         }
+//         // { timeout: 60000 } // 20 seconds timeout
+//       );
+
+//       setRoute(response.data.route_geojson);
+//       setRouteStats(response.data.stats);
+//     } catch (error) {
+//       console.error('Route calculation failed:', error);
+//       if (error.code === 'ECONNABORTED') {
+//         alert('Route calculation timed out. Please try again or adjust your input.');
+//       } else if (error.response) {
+//         alert(`Route calculation failed: ${error.response.status} ${error.response.statusText}`);
+//       } else {
+//         alert('Route calculation failed. Check console for details.');
+//       }
+//     }
+//     setLoading(false);
+//   };
+
+//   return (
+//     <div style={{ height: '100vh', display: 'flex', fontFamily: 'Inter, sans-serif' }}>
+//       {/* Glassmorphism Control Panel */}
+//       <div style={{
+//         width: 340,
+//         padding: 24,
+//         ...glassStyle,
+//         margin: 24,
+//         position: 'absolute',
+//         zIndex: 10,
+//         left: 0,
+//         top: 0,
+//         color: '#222'
+//       }}>
+//         <h2 style={{ fontWeight: 700, letterSpacing: 1 }}>Shade-Aware Routing</h2>
+//         {/* Country/Province Inputs */}
+//         <div style={{ marginBottom: 16 }}>
+//           <label>Country:</label>
+//           <input
+//             type="text"
+//             placeholder="Enter country (e.g., Canada)"
+//             value={country}
+//             onChange={e => setCountry(e.target.value)}
+//             style={{ width: '100%', padding: 8, borderRadius: 8, border: '1px solid #ccc', marginTop: 4, marginBottom: 8, background: 'rgba(255,255,255,0.5)' }}
+//           />
+//           <label>Province/State:</label>
+//           <input
+//             type="text"
+//             placeholder="Enter province/state (e.g., Ontario)"
+//             value={province}
+//             onChange={e => setProvince(e.target.value)}
+//             style={{ width: '100%', padding: 8, borderRadius: 8, border: '1px solid #ccc', marginTop: 4, background: 'rgba(255,255,255,0.5)' }}
+//           />
+//         </div>
+//         {/* Initialize Button */}
+//         {!initialized ? (
+//           <button
+//             onClick={initializeSystem}
+//             disabled={loading}
+//             style={{
+//               width: '100%',
+//               padding: 12,
+//               marginBottom: 16,
+//               borderRadius: 12,
+//               border: 'none',
+//               fontWeight: 600,
+//               fontSize: 16,
+//               color: '#fff',
+//               background: 'rgba(30, 41, 59, 0.7)',
+//               cursor: loading ? 'not-allowed' : 'pointer',
+//               ...glassStyle
+//             }}
+//           >
+//             {loading ? 'Initializing...' : 'Initialize System'}
+//           </button>
+//         ) : (
+//           <>
+//             {/* Origin Input */}
+//             <div style={{ marginBottom: 12 }}>
+//               <label>Origin:</label>
+//               <input
+//                 type="text"
+//                 placeholder="Enter your location"
+//                 value={originQuery}
+//                 onChange={e => {
+//                   setOriginQuery(e.target.value);
+//                   handleAddressSearch(e.target.value, setOriginOptions);
+//                 }}
+//                 style={{ width: '100%', padding: 8, borderRadius: 8, border: '1px solid #ccc', marginTop: 4, background: 'rgba(255,255,255,0.5)' }}
+//               />
+//               <ul style={{ listStyle: 'none', padding: 0, margin: 0, maxHeight: 100, overflowY: 'auto', background: '#fff', border: originOptions.length ? '1px solid #ccc' : 'none', borderRadius: 8 }}>
+//                 {originOptions.map(option => (
+//                   <li
+//                     key={option.place_id}
+//                     onClick={() => {
+//                       setOrigin([parseFloat(option.lat), parseFloat(option.lon)]);
+//                       setOriginQuery(option.display_name);
+//                       setOriginOptions([]);
+//                     }}
+//                     style={{ cursor: 'pointer', padding: 6 }}
+//                   >
+//                     {option.display_name}
+//                   </li>
+//                 ))}
+//               </ul>
+//             </div>
+//             {/* Destination Input */}
+//             <div style={{ marginBottom: 12 }}>
+//               <label>Destination:</label>
+//               <input
+//                 type="text"
+//                 placeholder="Enter your destination"
+//                 value={destinationQuery}
+//                 onChange={e => {
+//                   setDestinationQuery(e.target.value);
+//                   handleAddressSearch(e.target.value, setDestinationOptions);
+//                 }}
+//                 style={{ width: '100%', padding: 8, borderRadius: 8, border: '1px solid #ccc', marginTop: 4, background: 'rgba(255,255,255,0.5)' }}
+//               />
+//               <ul style={{ listStyle: 'none', padding: 0, margin: 0, maxHeight: 100, overflowY: 'auto', background: '#fff', border: destinationOptions.length ? '1px solid #ccc' : 'none', borderRadius: 8 }}>
+//                 {destinationOptions.map(option => (
+//                   <li
+//                     key={option.place_id}
+//                     onClick={() => {
+//                       setDestination([parseFloat(option.lat), parseFloat(option.lon)]);
+//                       setDestinationQuery(option.display_name);
+//                       setDestinationOptions([]);
+//                     }}
+//                     style={{ cursor: 'pointer', padding: 6 }}
+//                   >
+//                     {option.display_name}
+//                   </li>
+//                 ))}
+//               </ul>
+//             </div>
+//             {/* Date/Time, Shade Preference, Route Button */}
+//             <div style={{ marginBottom: 12 }}>
+//               <label>Date & Time:</label>
+//               <input
+//                 type="datetime-local"
+//                 value={datetime}
+//                 onChange={e => setDatetime(e.target.value)}
+//                 style={{ width: '100%', padding: 8, borderRadius: 8, border: '1px solid #ccc', marginTop: 4, background: 'rgba(255,255,255,0.5)' }}
+//               />
+//             </div>
+//             <div style={{ marginBottom: 12 }}>
+//               <label>Shade Preference: {(shadePreference * 100).toFixed(0)}%</label>
+//               <input
+//                 type="range"
+//                 min="0"
+//                 max="1"
+//                 step="0.1"
+//                 value={shadePreference}
+//                 onChange={e => setShadePreference(parseFloat(e.target.value))}
+//                 style={{ width: '100%' }}
+//               />
+//               <small>0% = Shortest distance, 100% = Maximum shade</small>
+//             </div>
+//             <button
+//               onClick={calculateRoute}
+//               disabled={loading || !origin || !destination}
+//               style={{
+//                 width: '100%',
+//                 padding: 12,
+//                 marginBottom: 16,
+//                 borderRadius: 12,
+//                 border: 'none',
+//                 fontWeight: 600,
+//                 fontSize: 16,
+//                 color: '#fff',
+//                 background: 'rgba(30, 41, 59, 0.7)',
+//                 cursor: loading ? 'not-allowed' : 'pointer',
+//                 ...glassStyle
+//               }}
+//             >
+//               {loading ? 'Calculating...' : 'Find Shaded Route'}
+//             </button>
+//             {routeStats && (
+//               <div style={{ background: 'rgba(255,255,255,0.7)', padding: 10, borderRadius: 8 }}>
+//                 <h4>Route Statistics:</h4>
+//                 <p>Distance: {(routeStats.total_distance_m / 1000).toFixed(2)} km</p>
+//                 <p>Shaded: {routeStats.shade_percentage}%</p>
+//                 <p>Shaded Distance: {(routeStats.shaded_distance_m / 1000).toFixed(2)} km</p>
+//               </div>
+//             )}
+//           </>
+//         )}
+//       </div>
+//       {/* Modern Map */}
+//       <div style={{ flex: 1 }}>
+//         <Map
+//           mapLib={maplibregl}
+//           initialViewState={{
+//             latitude: 43.65,
+//             longitude: -79.38,
+//             zoom: 13
+//           }}
+//           style={{ width: '100%', height: '100%' }}
+//           mapStyle="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
+//         >
+//           {/* Markers */}
+//           {origin && (
+//             <Marker longitude={origin[1]} latitude={origin[0]} color="green" />
+//           )}
+//           {destination && (
+//             <Marker longitude={destination[1]} latitude={destination[0]} color="red" />
+//           )}
+//           {/* Route GeoJSON */}
+//           {route && (
+//             <Source id="route" type="geojson" data={route}>
+//               <Layer
+//                 id="route-layer"
+//                 type="line"
+//                 paint={{
+//                   'line-color': '#2563eb',
+//                   'line-width': 6,
+//                   'line-opacity': 0.8
+//                 }}
+//               />
+//             </Source>
+//           )}
+//         </Map>
+//       </div>
+//     </div>
+//   );
+// }
+
+// export default App;
